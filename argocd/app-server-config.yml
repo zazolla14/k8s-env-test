@@ -1,0 +1,43 @@
+# 说明: 管理 akachat 平台的所有配置文件（ConfigMaps）
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  # 为这个平台配置应用起一个清晰的名字
+  name: server-config
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io/foreground
+  annotations:
+    # --- 平台配置同步控制 ---
+    # 设置为 "true" 时暂停配置同步（在进行多个配置修改时很有用）
+    # 设置为 "false" 或删除此注解时恢复自动同步
+    argocd.argoproj.io/paused: "false"
+
+    # --- Git 同步间隔设置 ---
+    # 设置 Argo CD 检查 Git 仓库变更的频率
+    # 支持的格式: 30s, 1m, 5m, 10m 等
+    argocd.argoproj.io/refresh: 30s
+spec:
+  # 将它归属到您的 'akachat' 项目
+  project: default
+
+  # source 指向包含 ConfigMap 的目录
+  source:
+    repoURL: git@github.com:1nterdigital/k8s-env-test.git
+    targetRevision: main
+    # 关键：路径直接指向包含 im-server-config.yml 的目录
+    path: apps/platform/config
+
+  # destination 定义了部署目标
+  destination:
+    server: https://kubernetes.default.svc
+    # ConfigMap 将被创建在这个命名空间中，与您文件中的定义一致
+    namespace: default
+
+  # 同样使用自动化同步策略
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

@@ -1,0 +1,61 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: discover-api
+spec:
+  serviceName: "discover-api-service"
+  replicas: 1
+  selector:
+    matchLabels:
+      app: discover-api
+  template:
+    metadata:
+      labels:
+        app: discover-api
+    spec:
+      imagePullSecrets:
+        - name: dockerhub-secret
+      containers:
+        - name: discover-api
+          image: akachat/server
+          imagePullPolicy: Always
+          env:
+            - name: CONFIG_PATH
+              value: /config
+            - name: DISCOVERENV_MYSQLDB_URI
+              valueFrom:
+                secretKeyRef:
+                  name: mysql-secret
+                  key: mysql_discover_uri
+            - name: DISCOVERENV_MYSQLDB_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: mysql-secret
+                  key: mysql_discover_username
+            - name: DISCOVERENV_MYSQLDB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mysql-secret
+                  key: mysql_discover_password
+
+          volumeMounts:
+            - name: discover-config
+              mountPath: /config
+              readOnly: true
+          ports:
+            - containerPort: 10013
+          livenessProbe:
+            tcpSocket:
+              port: 10013
+            initialDelaySeconds: 30
+            periodSeconds: 10
+
+          readinessProbe:
+            tcpSocket:
+              port: 10013
+            initialDelaySeconds: 5
+            periodSeconds: 5
+      volumes:
+        - name: discover-config
+          configMap:
+            name: discover-config

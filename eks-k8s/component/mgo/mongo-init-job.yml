@@ -1,0 +1,86 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: mongo-user-init
+  namespace: default
+spec:
+  ttlSecondsAfterFinished: 3600
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: mongo-init
+          image: mongo:7.0
+          env:
+            - name: MONGO_INITDB_ROOT_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: openim-mongo-secret
+                  key: mongo_initdb_root_username
+            - name: MONGO_INITDB_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: openim-mongo-secret
+                  key: mongo_initdb_root_password
+            - name: MONGO_INITDB_DATABASE
+              valueFrom:
+                  secretKeyRef:
+                    name: openim-mongo-secret
+                    key: mongo_initdb_database
+            - name: MONGO_OPENIM_USERNAME
+              valueFrom:
+                  secretKeyRef:
+                    name: openim-mongo-secret
+                    key: mongo_openim_username
+            - name: MONGO_OPENIM_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: openim-mongo-secret
+                  key: mongo_openim_password
+            - name: MONGO_PRIMARY_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: openim-mongo-secret
+                  key: mongo_primary_host
+            - name: MONGO_SECONDARY_HOST
+              valueFrom:
+                secretKeyRef:
+                    name: openim-mongo-secret
+                    key: mongo_secondary_host
+            - name: MONGO_REPLICA_SET
+              valueFrom:
+                secretKeyRef:
+                    name: openim-mongo-secret
+                    key: mongo_replica_set
+          command:
+            - /bin/bash
+            - -c
+            - |
+              set -e
+              
+              echo "==================== 创建用户 ===================="
+              
+              # 在PRIMARY节点上创建用户
+              echo "🔄 在PRIMARY节点上创建用户..."
+              echo "   PRIMARY_HOST: ${MONGO_PRIMARY_HOST}"
+              echo "   SECONDARY_HOST: ${MONGO_SECONDARY_HOST}"
+              echo "   REPLICA_SET: ${MONGO_REPLICA_SET}"
+              echo "   ROOT 用户: ${MONGO_INITDB_ROOT_USERNAME} / ${MONGO_INITDB_ROOT_PASSWORD}"
+              mongosh --host ${MONGO_PRIMARY_HOST} -u "${MONGO_INITDB_ROOT_USERNAME}" -p "${MONGO_INITDB_ROOT_PASSWORD}" --authenticationDatabase admin \
+              --eval "
+              db = db.getSiblingDB('${MONGO_INITDB_DATABASE}');
+              if (!db.getUser('${MONGO_OPENIM_USERNAME}')) {
+                  db.createUser({
+                    user: '${MONGO_OPENIM_USERNAME}',
+                    pwd: '${MONGO_OPENIM_PASSWORD}',
+                    roles: [{role: 'readWrite', db: '${MONGO_INITDB_DATABASE}'}]
+                  });
+                  print('User created successfully:');
+                  print('Username: ${MONGO_OPENIM_USERNAME}');
+                  print('Password: ${MONGO_OPENIM_PASSWORD}');
+                  print('Database: ${MONGO_INITDB_DATABASE}');
+              } else {
+                  print('User already exists in database: ${MONGO_INITDB_DATABASE}, Username: ${MONGO_OPENIM_USERNAME}');
+              }" --quiet 2>&1
+             
+   

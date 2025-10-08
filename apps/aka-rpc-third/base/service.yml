@@ -1,0 +1,24 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: rpc-third-service
+  labels:
+    app: rpc-third
+    service: rpc-third-service
+spec:
+  clusterIP: None
+  selector:
+    app: rpc-third
+  ports:
+    - name: grpc
+      protocol: TCP
+      port: 10300
+      targetPort: 10300
+    - name: prometheus
+      protocol: TCP
+      port: 12300
+      targetPort: 12300
+    - name: debug
+      protocol: TCP
+      port: 2345
+      targetPort: 2345

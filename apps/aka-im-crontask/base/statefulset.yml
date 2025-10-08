@@ -1,0 +1,50 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: im-crontask
+  labels:
+    app: im-crontask
+    service: im-crontask
+spec:
+  serviceName: im-crontask-service
+  updateStrategy:
+    type: RollingUpdate
+    rollingUpdate:
+      partition: 0
+  replicas: 1
+  selector:
+    matchLabels:
+      app: im-crontask
+  template:
+    metadata:
+      labels:
+        app: im-crontask
+        service: im-crontask-service
+    spec:
+      imagePullSecrets:
+        - name: dockerhub-secret
+      containers:
+        - name: im-crontask
+          image: akachat/server
+          imagePullPolicy: Always
+          env:
+            - name: DEBUG_MODE
+              value: "true"
+            - name: CONFIG_PATH
+              value: "/config"
+          volumeMounts:
+            - name: server-config
+              mountPath: "/config"
+              readOnly: true
+            - name: srv-log
+              mountPath:  "/akachat/server/logs"
+          ports:
+            - name: debug
+              containerPort: 2345
+      volumes:
+        - name: server-config
+          configMap:
+            name: server-config
+        - name: srv-log
+          persistentVolumeClaim:
+            claimName: cnfs-nas-pvc

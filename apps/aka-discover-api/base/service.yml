@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: discover-api-service
+spec:
+  selector:
+    app: discover-api
+  ports:
+    - name: http
+      protocol: TCP
+      port: 10013
+      targetPort: 10013
+    - name: prometheus
+      protocol: TCP
+      port: 14002
+      targetPort: 14002
+  clusterIP: None

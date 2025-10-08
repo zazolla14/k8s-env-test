@@ -1,0 +1,15 @@
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: alicloud-disk-essd
+  annotations:
+    storageclass.kubernetes.io/is-default-class: "true"
+provisioner: diskplugin.csi.alibabacloud.com
+parameters:
+  type: cloud_essd           # ESSD 云盘
+  # 可以选择性能级别：PL0 / PL1 / PL2 / PL3（ESSD 有性能等级）
+  performanceLevel: PL1
+  encrypted: "true"          # 是否加密
+reclaimPolicy: Delete        # 或 Retain
+volumeBindingMode: WaitForFirstConsumer
+allowVolumeExpansion: true   # 允许扩容

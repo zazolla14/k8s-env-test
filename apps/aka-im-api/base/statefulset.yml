@@ -1,0 +1,93 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: im-api
+  labels:
+    app: im-api
+    service: im-api-service
+spec:
+  serviceName: "im-api-service"
+  updateStrategy:
+    type: RollingUpdate
+    rollingUpdate:
+      partition: 0
+  replicas: 1
+  selector:
+    matchLabels:
+      app: im-api
+  template:
+    metadata:
+      labels:
+        app: im-api
+        service: im-api-service
+    spec:
+      imagePullSecrets:
+        - name: dockerhub-secret
+      containers:
+
+        - name: im-api
+          image: akachat/server
+          imagePullPolicy: Always
+          env:
+            - name: DEBUG_MODE
+              value: "true"
+            - name: CONFIG_PATH
+              value: "/config"
+            - name: IMENV_REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: redis-secret
+                  key: redis-password
+            - name: IMENV_MONGODB_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: openim-mongo-secret
+                  key: mongo_openim_username
+            - name: IMENV_MONGODB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: openim-mongo-secret
+                  key: mongo_openim_password
+
+          volumeMounts:
+            - name: server-config
+              mountPath: "/config"
+              readOnly: true
+            - name: srv-log
+              mountPath:  "/akachat/server/logs"
+            - name: general-cert
+              mountPath: /im-server/_output/config/private.pem
+              subPath: encrypt-private.pem
+              readOnly: true
+          ports:
+            - name: http
+              containerPort: 10002
+            - name: prometheus
+              containerPort: 12002
+            - name: debug
+              containerPort: 2345
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "100m"
+          livenessProbe:
+            tcpSocket:
+              port: 10002
+            initialDelaySeconds: 30
+            periodSeconds: 10
+
+          readinessProbe:
+            tcpSocket:
+              port: 10002
+            initialDelaySeconds: 5
+            periodSeconds: 5
+      volumes:
+        - name: server-config
+          configMap:
+            name: server-config
+        - name: general-cert
+          secret:
+            secretName: general-cert
+        - name: srv-log
+          persistentVolumeClaim:
+            claimName: cnfs-nas-pvc

@@ -1,0 +1,77 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: rpc-auth
+  labels:
+    app: rpc-auth
+    service: im-rpc-auth
+spec:
+  serviceName: rpc-auth-service
+  updateStrategy:
+    type: RollingUpdate
+    rollingUpdate:
+      partition: 0
+  replicas: 1
+  selector:
+    matchLabels:
+      app: rpc-auth
+  template:
+    metadata:
+      labels:
+        app: rpc-auth
+        service: im-rpc-auth
+    spec:
+      imagePullSecrets:
+        - name: dockerhub-secret
+      containers:
+        - name: im-rpc-auth
+          image: akachat/server
+          imagePullPolicy: Always
+          env:
+            - name: DEBUG_MODE
+              value: "true"
+            - name: CONFIG_PATH
+              value: "/config"
+            - name: IMENV_REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: redis-secret
+                  key: redis-password
+            - name: LOG_LEVEL
+              value: "debug"
+
+          volumeMounts:
+            - name: server-config
+              mountPath: "/config"
+              readOnly: true
+            - name: srv-log
+              mountPath: "/akachat/server/logs"
+          ports:
+            - name: grpc
+              containerPort: 10200
+            - name: prometheus
+              containerPort: 12200
+            - name: debug
+              containerPort: 2345
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "100m"
+          livenessProbe:
+            tcpSocket:
+              port: 10200
+            initialDelaySeconds: 30
+            periodSeconds: 10
+
+          readinessProbe:
+            tcpSocket:
+              port: 10200
+            initialDelaySeconds: 5
+            periodSeconds: 5
+      volumes:
+        - name: server-config
+          configMap:
+            name: server-config
+        - name: srv-log
+          persistentVolumeClaim:
+            claimName: cnfs-nas-pvc

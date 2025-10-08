@@ -1,0 +1,20 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: rpc-group-service
+  labels:
+    app: rpc-group
+    service: rpc-group-service
+spec:
+  clusterIP: None
+  selector:
+    app: rpc-group
+  ports:
+    - name: grpc
+      protocol: TCP
+      port: 10260
+      targetPort: 10260
+    - name: prometheus
+      protocol: TCP
+      port: 12260
+      targetPort: 12260

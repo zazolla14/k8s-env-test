@@ -1,0 +1,23 @@
+helm repo add headlamp https://kubernetes-sigs.github.io/headlamp/
+
+
+helm install headlamp headlamp/headlamp --namespace kube-system
+
+ kubectl create token headlamp -n kube-system --duration=8760h
+
+
+
+kubectl delete clusterrolebinding headlamp-admin
+
+
+
+kubectl -n kube-system create serviceaccount headlamp-admin
+
+
+kubectl create clusterrolebinding headlamp-admin --serviceaccount=kube-system:headlamp-admin --clusterrole=cluster-admin
+
+
+kubectl apply -f headlamp-admin-token.yaml
+kubectl create token headlamp-admin -n kube-system
+
+kubectl apply -f headlamp-ingress.yaml

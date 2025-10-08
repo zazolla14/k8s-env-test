@@ -1,0 +1,8 @@
+persistence:
+  enabled: false
+
+adminUser: admin
+adminPassword: mC3eGzPq8WjF2Y7nXtRBLKva59Uhq0ND
+
+service:
+  type: ClusterIP

@@ -1,0 +1,83 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: admin-api-service
+  labels:
+    app: admin-api
+    service: admin-api-service
+spec:
+  serviceName: admin-api-service
+  updateStrategy:
+    type: RollingUpdate
+    rollingUpdate:
+      partition: 0
+  replicas: 1
+  selector:
+    matchLabels:
+      app: admin-api
+  template:
+    metadata:
+      labels:
+        app: admin-api
+        service: admin-api-service
+    spec:
+      imagePullSecrets:
+        - name: dockerhub-secret
+      containers:
+        - name: admin-api
+          image: akachat/server
+          imagePullPolicy: Always
+          env:
+            - name: DEBUG_MODE
+              value: "true"
+            - name: CONFIG_PATH
+              value: "/config"
+            - name: CHATENV_REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: redis-secret
+                  key: redis-password
+            - name: CHATENV_MONGODB_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: openim-mongo-secret
+                  key: mongo_openim_username
+            - name: CHATENV_MONGODB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: openim-mongo-secret
+                  key: mongo_openim_password
+
+          volumeMounts:
+            - name: chat-config
+              mountPath: "/config"
+              readOnly: true
+            - name: srv-log
+              mountPath:  "/akachat/server/logs"
+          ports:
+            - name: http
+              containerPort: 10009
+            - name: debug
+              containerPort: 2345
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "100m"
+          livenessProbe:
+            tcpSocket:
+              port: 10009
+            initialDelaySeconds: 30
+            periodSeconds: 10
+
+          readinessProbe:
+            tcpSocket:
+              port: 10009
+            initialDelaySeconds: 5
+            periodSeconds: 5
+      volumes:
+        - name: chat-config
+          configMap:
+            name: chat-config
+        - name: srv-log
+          persistentVolumeClaim:
+            claimName: cnfs-nas-pvc

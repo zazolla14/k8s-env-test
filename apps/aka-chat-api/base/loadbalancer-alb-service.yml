@@ -1,0 +1,45 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: chat-api-external
+spec:
+  type: ClusterIP
+  selector:
+    app: chat-api
+  ports:
+  - name: http
+    port: 10008
+    targetPort: 10008
+    protocol: TCP
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: chat-api-alb
+  annotations:
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP":80},{"HTTPS":443}]'
+    alb.ingress.kubernetes.io/ssl-redirect: 'true'
+    alb.ingress.kubernetes.io/healthcheck-path: /health
+    alb.ingress.kubernetes.io/healthcheck-port: '10008'
+    alb.ingress.kubernetes.io/healthcheck-protocol: HTTP
+    alb.ingress.kubernetes.io/healthcheck-interval-seconds: '30'
+    alb.ingress.kubernetes.io/healthcheck-timeout-seconds: '5'
+    alb.ingress.kubernetes.io/healthy-threshold-count: '2'
+    alb.ingress.kubernetes.io/unhealthy-threshold-count: '3'
+    external-dns.alpha.kubernetes.io/hostname: ap8.0dev.cc
+spec:
+  ingressClassName: alb
+  rules:
+    - host: ap8.0dev.cc
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: chat-api-external
+                port:
+                  number: 10008
+  tls:
+    - hosts:
+      - ap8.0dev.cc

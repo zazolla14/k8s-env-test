@@ -1,0 +1,31 @@
+# Collector (receives traces from OTEL or apps)
+apiVersion: v1
+kind: Service
+metadata:
+  name: jaeger-collector
+  namespace: monitoring
+spec:
+  selector:
+    app: jaeger
+  ports:
+    - name: grpc-collector
+      port: 14250
+      targetPort: 14250
+    - name: http-collector
+      port: 14268
+      targetPort: 14268
+---
+# Query (UI)
+apiVersion: v1
+kind: Service
+metadata:
+  name: jaeger-query
+  namespace: monitoring
+spec:
+  selector:
+    app: jaeger
+  ports:
+    - name: query-http
+      port: 16686
+      targetPort: 16686
+  type: ClusterIP

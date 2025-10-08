@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: wallet-msgtransfer-service
+spec:
+  selector:
+    app: wallet-msgtransfer
+  ports:
+    - name: prometheus
+      protocol: TCP
+      port: 19020
+      targetPort: 19020
+    - name: health
+      protocol: TCP
+      port: 7000
+      targetPort: 7000
+  clusterIP: None

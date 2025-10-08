@@ -1,0 +1,33 @@
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: cnfs-nas-pv
+  labels:
+    alicloud-pvname: cnfs-nas-pv
+spec:
+  capacity:
+    storage: 200Gi
+  accessModes:
+    - ReadWriteMany
+  csi:
+    driver: nasplugin.csi.alibabacloud.com
+    volumeHandle: cnfs-nas-pv
+    volumeAttributes:
+        containerNetworkFileSystem: cnfs-nas-cd93cef4d4e2943e6971113d6a19d3ede
+        path: /
+  mountOptions:
+    - nolock,tcp,noresvport
+    - vers=3
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: cnfs-nas-pvc
+  namespace: default
+spec:
+  accessModes:
+    - ReadWriteMany
+  volumeName: cnfs-nas-pv
+  resources:
+    requests:
+      storage: 200Gi

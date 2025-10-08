@@ -1,0 +1,22 @@
+# kubectl edit albconfig alb
+apiVersion: alibabacloud.com/v1
+kind: AlbConfig
+metadata:
+  name: alb
+spec:
+  config:
+    name: alb
+    addressType: Internet
+    zoneMappings:
+    - vSwitchId: vsw-k1afd6ofhdd5cxrvx9beq
+    - vSwitchId: vsw-k1a9l2xs2xyz28q1i5rou
+    - vSwitchId: vsw-k1aqjslbsgywgk5worboc
+  listeners:
+    - port: 80
+      protocol: HTTP
+    # HTTPS listener with default certificate edited  here
+    - certificates: 
+      - CertificateId: 246001-ap-southeast-1
+        IsDefault: true
+      port: 443
+      protocol: HTTPS

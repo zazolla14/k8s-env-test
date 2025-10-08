@@ -1,0 +1,53 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: redis-debug-pod
+  namespace: default
+  labels:
+    app: redis-debug
+spec:
+  restartPolicy: Never
+  containers:
+    - name: redis-client
+      image: redis:7.2-alpine
+      imagePullPolicy: IfNotPresent
+      stdin: true
+      tty: true
+      command: ["/bin/sh"]
+      args: ["-c", "while true; do sleep 3600; done"]
+      env:
+        # 使用你配置文件中的实际Redis地址
+        - name: REDIS_HOST
+          value: "r-d9jj3sgajitxtqb1h6.redis.ap-southeast-5.rds.aliyuncs.com"
+        - name: REDIS_PORT
+          value: "6379"
+        # 使用REDISCLI_AUTH环境变量避免命令行密码警告
+        - name: REDISCLI_AUTH
+          valueFrom:
+            secretKeyRef:
+              name: redis-secret
+              key: redis-password
+        # Redis用户名
+        - name: REDIS_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: redis-secret
+              key: redis-username
+        # Redis密码（用于脚本中的变量引用）
+        - name: REDIS_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: redis-secret
+              key: redis-password
+        # 集群模式标志
+        - name: REDIS_CLUSTER_MODE
+          value: "true"
+        - name: REDIS_DB
+          value: "0"
+      resources:
+        limits:
+          cpu: "100m"
+          memory: "128Mi"
+        requests:
+          cpu: "50m"
+          memory: "64Mi"

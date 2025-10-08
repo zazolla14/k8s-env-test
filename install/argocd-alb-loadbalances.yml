@@ -1,0 +1,62 @@
+# 1) Service 改为 ClusterIP（由 ALB 转发进来）
+apiVersion: v1
+kind: Service
+metadata:
+  name: argocd-server
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: argocd-server
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: argocd-server
+  ports:
+    - name: http
+      port: 80
+      targetPort: 8080
+---
+# 2) Ingress：ALB + HTTPS + ExternalDNS
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: argocd-alb
+  namespace: argocd
+  annotations:
+
+    alb.ingress.kubernetes.io/ssl-redirect: "true"
+    # 后端协议
+    alb.ingress.kubernetes.io/backend-protocol: HTTP
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}, {"HTTPS": 443}]'
+    # gRPC 条件路由 - 必须与 gRPC service 名称匹配
+    alb.ingress.kubernetes.io/conditions.argogrpc: |
+      [{"type":"Header","headerConfig":{"key": "Content-Type", "values":["application/grpc"]}}]
+    # 健康检查（按需修改）
+    alb.ingress.kubernetes.io/healthcheck-enabled: "true"
+    alb.ingress.kubernetes.io/healthcheck-path: /healthz
+# 3) Ingress：ALB + HTTPS + ExternalDNS (修复版本)
+    alb.ingress.kubernetes.io/healthcheck-protocol: HTTP
+
+    external-dns.alpha.kubernetes.io/hostname: argocd.0dev.cc
+spec:
+  ingressClassName: alb
+  rules:
+    - host: argocd.0dev.cc
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: argogrpc  # gRPC service 必须在前面
+                port:
+                  number: 443
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: argocd-server  # HTTP service
+                port:
+                  number: 80
+  tls:
+    - hosts:
+        - argocd.0dev.cc

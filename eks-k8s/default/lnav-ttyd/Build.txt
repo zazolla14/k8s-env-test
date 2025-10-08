@@ -1,0 +1,17 @@
+
+
+
+
+
+docker buildx build \
+  --platform linux/amd64 \
+  -t ran7891/lnav-ttyd:amd64 \
+  . 
+
+# 推送到远程仓库（比如 ECR/Hub）
+docker buildx build \
+  --platform linux/amd64 \
+  --no-cache \
+  -t ran7891/lnav-ttyd:amd64 \
+  --push \
+  .

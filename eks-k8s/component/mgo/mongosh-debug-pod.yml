@@ -1,0 +1,65 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: mongosh-debug
+  namespace: default
+  labels:
+    app: mongosh-debug
+spec:
+  containers:
+  - name: mongosh
+    image: mongo:7.0
+    command:
+      - sleep
+      - "3600"
+    env:
+      - name: MONGO_INITDB_ROOT_USERNAME
+        valueFrom:
+          secretKeyRef:
+            name: openim-mongo-secret
+            key: mongo_initdb_root_username
+      - name: MONGO_INITDB_ROOT_PASSWORD
+        valueFrom:
+          secretKeyRef:
+            name: openim-mongo-secret
+            key: mongo_initdb_root_password
+      - name: MONGO_INITDB_DATABASE
+        valueFrom:
+          secretKeyRef:
+            name: openim-mongo-secret
+            key: mongo_initdb_database
+      - name: MONGO_OPENIM_USERNAME
+        valueFrom:
+          secretKeyRef:
+            name: openim-mongo-secret
+            key: mongo_openim_username
+      - name: MONGO_OPENIM_PASSWORD
+        valueFrom:
+          secretKeyRef:
+            name: openim-mongo-secret
+            key: mongo_openim_password
+      - name: MONGO_PRIMARY_HOST
+        valueFrom:
+          secretKeyRef:
+            name: openim-mongo-secret
+            key: mongo_primary_host
+      - name: MONGO_SECONDARY_HOST
+        valueFrom:
+          secretKeyRef:
+            name: openim-mongo-secret
+            key: mongo_secondary_host
+      - name: MONGO_REPLICA_SET
+        valueFrom:
+          secretKeyRef:
+            name: openim-mongo-secret
+            key: mongo_replica_set
+    resources:
+      requests:
+        memory: "128Mi"
+        cpu: "100m"
+      limits:
+        memory: "256Mi"
+        cpu: "200m"
+  restartPolicy: Always
+
+

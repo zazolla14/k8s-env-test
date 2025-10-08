@@ -1,0 +1,104 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: rpc-third
+  labels:
+    app: rpc-third
+    service: rpc-third-service
+spec:
+  serviceName: rpc-third-service
+  updateStrategy:
+    type: RollingUpdate
+    rollingUpdate:
+      partition: 0
+  replicas: 1
+  selector:
+    matchLabels:
+      app: rpc-third
+  template:
+    metadata:
+      labels:
+        app: rpc-third
+        service: rpc-third-service
+    spec:
+      imagePullSecrets:
+        - name: dockerhub-secret
+      containers:
+        - name: rpc-third
+          image:  akachat/server
+          imagePullPolicy: Always
+          env:
+            - name: DEBUG_MODE
+              value: "true"
+            - name: CONFIG_PATH
+              value: "/config"
+            - name: IMENV_MINIO_ACCESSKEYID
+              valueFrom:
+                secretKeyRef:
+                  name: minio-secret
+                  key: minio-root-user
+            - name: IMENV_MINIO_SECRETACCESSKEY
+              valueFrom:
+                secretKeyRef:
+                  name: minio-secret
+                  key: minio-root-password
+            - name: IMENV_REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: redis-secret
+                  key: redis-password
+            - name: IMENV_MONGODB_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: openim-mongo-secret
+                  key: mongo_openim_username
+            - name: IMENV_MONGODB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: openim-mongo-secret
+                  key: mongo_openim_password
+            - name: IMENV_OPENIM_RPC_THIRD_OBJECT_OSS_ACCESSKEYID
+              valueFrom:
+                secretKeyRef:
+                  name: openim-oss-secret
+                  key: aliyun-oss-id
+            - name: IMENV_OPENIM_RPC_THIRD_OBJECT_OSS_ACCESSKEYSECRET
+              valueFrom:
+                secretKeyRef:
+                  name: openim-oss-secret
+                  key: aliyun-oss-secret
+          volumeMounts:
+            - name: server-config
+              mountPath: "/config"
+              readOnly: true
+            - name: srv-log
+              mountPath:  "/akachat/server/logs"
+          ports:
+            - name: grpc
+              containerPort: 10300
+            - name: prometheus
+              containerPort: 12300
+            - name: debug
+              containerPort: 2345
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "100m"
+          livenessProbe:
+            tcpSocket:
+              port: 10300
+            initialDelaySeconds: 30
+            periodSeconds: 10
+
+          readinessProbe:
+            tcpSocket:
+              port: 10300
+            initialDelaySeconds: 5
+            periodSeconds: 5
+      volumes:
+        - name: server-config
+          configMap:
+            name: server-config
+        - name: srv-log
+          persistentVolumeClaim:
+            claimName: cnfs-nas-pvc

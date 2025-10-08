@@ -1,0 +1,93 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: chat-api
+  labels:
+    app: chat-api
+    service: chat-api-service
+spec:
+  serviceName: chat-api-service
+  updateStrategy:
+    type: RollingUpdate
+    rollingUpdate:
+      partition: 0
+  replicas: 1
+  selector:
+    matchLabels:
+      app: chat-api
+  template:
+    metadata:
+      labels:
+        app: chat-api
+        service: chat-api-service
+    spec:
+      imagePullSecrets:
+        - name: dockerhub-secret
+      containers:
+        - name: chat-api
+          image: akachat/server
+          imagePullPolicy: Always
+          env:
+            - name: DEBUG_MODE
+              value: "true"
+            - name: CONFIG_PATH
+              value: "/config"
+            - name: CHATENV_REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: redis-secret
+                  key: redis-password
+            - name: CHATENV_MONGODB_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: openim-mongo-secret
+                  key: mongo_openim_username
+            - name: CHATENV_MONGODB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: openim-mongo-secret
+                  key: mongo_openim_password
+            - name: CHATENV_CHAT_RPC_CHAT_LIVEKIT_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: openim-livekit-secret
+                  key: livekit_openim_key
+            - name: CHATENV_CHAT_RPC_CHAT_LIVEKIT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: openim-livekit-secret
+                  key: livekit_openim_secret
+
+          volumeMounts:
+            - name: chat-config
+              mountPath: "/config"
+              readOnly: true
+            - name: srv-log
+              mountPath:  "/akachat/server/logs"
+          ports:
+            - name: http
+              containerPort: 10008
+            - name: debug
+              containerPort: 2345
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "100m"
+          livenessProbe:
+            tcpSocket:
+              port: 10008          # Trying to connect to port 10008 of the container
+            initialDelaySeconds: 30 #Wait for 30 seconds after the container starts before beginning the check.
+            periodSeconds: 10       # Check every 10 seconds
+
+          readinessProbe:
+            tcpSocket:
+              port: 10008          # Attempting to connect to port 10008 of the container.
+            initialDelaySeconds: 5  # Wait for 5 seconds to start checking after the container launches.
+            periodSeconds: 5
+      volumes:
+        - name: chat-config
+          configMap:
+            name: chat-config
+        - name: srv-log
+          persistentVolumeClaim:
+            claimName: cnfs-nas-pvc

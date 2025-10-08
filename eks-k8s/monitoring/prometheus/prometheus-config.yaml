@@ -1,0 +1,90 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: prometheus-config
+  namespace: monitoring
+data:
+  prometheus.yml: |
+    # my global config
+    global:
+      scrape_interval:     15s # Set the scrape interval to every 15 seconds. Default is every 1 minute.
+      evaluation_interval: 15s # Evaluate rules every 15 seconds. The default is every 1 minute.
+      # scrape_timeout is set to the global default (10s).
+
+    # Alertmanager configuration
+    # alerting:
+    #   alertmanagers:
+    #     - static_configs:
+    #         - targets: [internal_ip:19093]
+
+    # Load rules once and periodically evaluate them according to the global evaluation_interval.
+    rule_files:
+      # - instance-down-rules.yml
+    # - first_rules.yml
+    # - second_rules.yml
+
+    # A scrape configuration containing exactly one endpoint to scrape:
+    # Here it's Prometheus itself.
+    scrape_configs:
+      # The job name is added as a label "job=job_name" to any timeseries scraped from this config.
+      # Monitored information captured by prometheus
+
+      # prometheus fetches application services
+      - job_name: node_exporter
+        static_configs:
+          - targets: [ 'node-exporter.monitoring.svc:9100' ]
+      - job_name: im-api-service
+        static_configs:
+          - targets: [ 'im-api-service.default.svc:12002' ]
+            labels:
+              namespace: default
+      - job_name: im-msggateway-service
+        static_configs:
+          - targets: [ 'im-msggateway-service.default.svc:12001' ]
+            labels:
+              namespace: default
+      - job_name: im-msgtransfer-service
+        static_configs:
+          - targets: [ 'im-msgtransfer-service.default.svc:12020' ]
+            labels:
+              namespace: default
+      - job_name: im-push-service
+        static_configs:
+          - targets: [ 'im-push-service.default.svc:12170' ]
+            labels:
+              namespace: default
+      - job_name: rpc-auth-service
+        static_configs:
+          - targets: [ 'rpc-auth-service.default.svc:12200' ]
+            labels:
+              namespace: default
+      - job_name: rpc-conversation-service
+        static_configs:
+          - targets: [ 'rpc-conversation-service.default.svc:12220' ]
+            labels:
+              namespace: default
+      - job_name: rpc-friend-service
+        static_configs:
+          - targets: [ 'rpc-friend-service.default.svc:12240' ]
+            labels:
+              namespace: default
+      - job_name: rpc-group-service
+        static_configs:
+          - targets: [ 'rpc-group-service.default.svc:12260' ]
+            labels:
+              namespace: default
+      - job_name: rpc-msg-service
+        static_configs:
+          - targets: [ 'rpc-msg-service.default.svc:12280' ]
+            labels:
+              namespace: default
+      - job_name: rpc-third-service
+        static_configs:
+          - targets: [ 'rpc-third-service.default.svc:12300' ]
+            labels:
+              namespace: default
+      - job_name: rpc-user-service
+        static_configs:
+          - targets: [ 'rpc-user-service.default.svc:12320' ]
+            labels:
+              namespace: default

@@ -1,0 +1,108 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: chat-rpc
+  labels:
+    app: chat-rpc
+    service: chat-rpc
+spec:
+  serviceName: chat-rpc-service
+  updateStrategy:
+    type: RollingUpdate
+    rollingUpdate:
+      partition: 0
+  replicas: 1
+  selector:
+    matchLabels:
+      app: chat-rpc
+  template:
+    metadata:
+      labels:
+        app: chat-rpc
+        service: chat-rpc-service
+    spec:
+      imagePullSecrets:
+        - name: dockerhub-secret
+      containers:
+        - name: chat-rpc
+          image: akachat/server
+          imagePullPolicy: Always
+          env:
+            - name: DEBUG_MODE
+              value: "true"
+            - name: CONFIG_PATH
+              value: "/config"
+            - name: CHATENV_REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: redis-secret
+                  key: redis-password
+            - name: CHATENV_MONGODB_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: openim-mongo-secret
+                  key: mongo_openim_username
+            - name: CHATENV_MONGODB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: openim-mongo-secret
+                  key: mongo_openim_password
+            - name: CHATENV_CHAT_RPC_CHAT_LIVEKIT_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: openim-livekit-secret
+                  key: livekit_openim_key
+            - name: CHATENV_CHAT_RPC_CHAT_LIVEKIT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: openim-livekit-secret
+                  key: livekit_openim_secret
+            - name: CHATENV_CHAT_RPC_CHAT_VERIFYCODE_PHONE_ENJOYMOV_MD5KEY
+              valueFrom:
+                secretKeyRef:
+                  name: openim-enjoymov-secret
+                  key: enjoymov_openim_md5key
+            - name: CHATENV_CHAT_RPC_CHAT_VERIFYCODE_PHONE_ENJOYMOV_ACCESSKEYSECRETYUNPIAN
+              valueFrom:
+                secretKeyRef:
+                  name: openim-enjoymov-secret
+                  key: enjoymov_openim_yunpian_secret
+            - name: CHATENV_CHAT_RPC_CHAT_VERIFYCODE_MAIL_AWSSESPASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: openim-aws-mail-secret
+                  key: aws_mail_openim_password
+
+          volumeMounts:
+            - name: chat-config
+              mountPath: "/config"
+              readOnly: true
+            - name: srv-log
+              mountPath:  "/akachat/server/logs"
+          ports:
+            - name: grpc
+              containerPort: 30300
+            - name: debug
+              containerPort: 2345
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "100m"
+          livenessProbe:
+            tcpSocket:
+              port: 30300
+            initialDelaySeconds: 30
+            periodSeconds: 10
+
+          readinessProbe:
+            tcpSocket:
+              port: 30300
+            initialDelaySeconds: 5
+            periodSeconds: 5
+      volumes:
+        - name: chat-config
+          configMap:
+            name: chat-config
+        - name: srv-log
+          persistentVolumeClaim:
+            claimName: cnfs-nas-pvc

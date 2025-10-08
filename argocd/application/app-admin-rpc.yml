@@ -1,0 +1,58 @@
+# --- Argo CD 应用定义 ---
+# apiVersion 和 kind 定义了这是一个 Argo CD 的 Application 资源。
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+
+# --- 元数据 ---
+# metadata 包含了应用的基本信息，如名称、命名空间和用于自动化操作的注解。
+metadata:
+  # name: 应用的唯一名称，将显示在 Argo CD UI 中。
+  name: server-admin-rpc-test
+  # namespace: Argo CD Application 资源本身所在的命名空间，固定为 'argocd'。
+  namespace: argocd
+  # finalizers: 确保在删除 Application 资源时，其部署的 Kubernetes 资源也会被清理。
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io/foreground
+
+  # --- 注解 (Annotations) ---
+  # annotations 是配置自动化行为的关键，特别是对于 Image Updater。
+  annotations:
+    argocd.argoproj.io/paused: "false"
+    argocd.argoproj.io/refresh: "30s" # 每60秒检查一次Git仓库
+
+# --- 应用规格 (Specification) ---
+# spec 定义了应用的核心行为：从哪里获取配置，以及部署到哪里。
+spec:
+  # project: 应用所属的 Argo CD 项目，用于组织和权限控制。
+  project: default
+
+  # source: 定义了应用的配置来源，即您的 Git 仓库。
+  source:
+    # repoURL: Git 仓库的地址。
+    repoURL: git@github.com:1nterdigital/k8s-env-test.git
+    # targetRevision: 要跟踪的 Git 分支或标签。'main' 表示始终跟踪 main 分支的最新提交。
+    targetRevision: main
+    # path: Git 仓库中包含此应用 Kustomize 配置的路径。
+    path: apps/aka-admin-rpc/overlays/dev
+
+  # destination: 定义了应用要部署的目标位置。
+  destination:
+    # server: 目标 Kubernetes 集群的 API Server 地址。'https://kubernetes.default.svc' 是一个特殊值，表示部署到 Argo CD 所在的同一个集群。
+    server: https://kubernetes.default.svc
+    # namespace: 在目标集群中，应用资源将被部署到的命名空间。
+    namespace: default
+
+  # syncPolicy: 定义了应用的同步策略。
+  syncPolicy:
+    # automated: 启用自动化同步。当 Git 仓库中的配置发生变化时，Argo CD 会自动将变更应用到集群。
+    automated:
+      # prune: 如果某个资源在 Git 中被删除了，Argo CD 会自动从集群中删除该资源。
+      prune: true
+      # selfHeal: 如果集群中的实际状态与 Git 中定义的状态不一致（例如，有人手动修改了资源），Argo CD 会自动将其恢复到 Git 中定义的状态。
+      selfHeal: true
+    # syncOptions: 提供额外的同步行为控制。
+    syncOptions:
+      # CreateNamespace=true: 如果目标命名空间 'akachat' 不存在，Argo CD 会在同步时自动创建它。
+      - CreateNamespace=true
+      # PruneLast=true: 一个安全选项，确保在同步操作中，删除（prune）操作在其他所有操作之后执行，以避免服务中断。
+      - PruneLast=true
